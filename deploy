@@ -48,16 +48,6 @@ check_binaries () {
   done
 }
 
-check_version_from_pio () {
-  SRC_REV=`cat platformio.ini | grep 'revision =' | awk '{print $3}'`
-  SRC_VER=`cat platformio.ini | grep 'version =' | awk '{print $3}'`
-  if [ ! "$SRC_VER" = "" ] && [ ! "$SRC_REV" = "" ]; then
-    VERSIOFULL="${SRC_VER}r${SRC_REV}"
-    echo "Version detected: $VERSIOFULL"
-    VERSION=$SRC_VER
-  fi
-}
-
 showHelp () {
   echo ""
   echo "*******************************"
@@ -68,6 +58,9 @@ showHelp () {
   echo ""
   echo "deploy [build|clean|publish|help]"
   echo ""
+  echo "examples:"
+  echo "deploy build"
+  echo "deploy build 0.1.2"
 }
 
 clean () {
@@ -79,14 +72,16 @@ build () {
   clean
   check_esptool
   check_firmdir
-  check_version_from_pio
+  if [ "$1" != "" ]; then
+    VERSION="$1"
+  fi
+  echo "Version detected: $VERSION"
   cd $FIRMDIR
   check_binaries
-
   mkdir -p ../release
   for dir in */ ; do
     FLAVOR=`basename $dir`
-    OUTPUT="${NAME}_${FLAVOR}_v${VERSION}.bin"
+    OUTPUT="${NAME}_${FLAVOR}_${VERSION}.bin"
     echo "Generating merge binary for $OUTPUT"
     esptool --chip esp32 merge_bin -o ../release/${OUTPUT}  --flash_mode dio --flash_freq 40m --flash_size 4MB 0x1000 $PIO_ESP32_BIN/bootloader_dio_40m.bin 0x8000 $FLAVOR/partitions.bin 0xe000 $PIO_PARTITIONS/boot_app0.bin 0x10000 $FLAVOR/firmware.bin
     md5sum ../release/${OUTPUT}
@@ -123,7 +118,7 @@ else
       ;;
 
     build)
-      build
+      build "$2"
       ;;
 
     publish)
