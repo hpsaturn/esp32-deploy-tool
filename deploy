@@ -13,7 +13,7 @@
 ################################################################
 
 DFLNAME=`basename "$PWD"`
-DATE=`date +%Y%m%d%H%M%S`
+DATE=`date +%Y%m%d`
 FIRMDIR=.pio/build
 RELDIR="releases"
 
@@ -48,6 +48,16 @@ check_binaries () {
   done
 }
 
+check_version_from_pio () {
+  SRC_REV=`cat platformio.ini | grep 'revision =' | awk '{print $3}'`
+  SRC_VER=`cat platformio.ini | grep 'version =' | awk '{print $3}'`
+  if [ ! "$SRC_VER" = "" ] && [ ! "$SRC_REV" = "" ]; then
+    VERSIOFULL="${SRC_VER}r${SRC_REV}"
+    echo "Version detected: $VERSIOFULL"
+    VERSION=$SRC_VER
+  fi
+}
+
 showHelp () {
   echo ""
   echo "*******************************"
@@ -56,11 +66,12 @@ showHelp () {
   echo ""
   echo "usage:"
   echo ""
-  echo "deploy [build|clean|publish|help"
+  echo "deploy [build|clean|publish|help]"
   echo ""
 }
 
 clean () {
+  rm -f ${NAME}_v${VERSION}.zip
   rm -rf .pio/release
 }
 
@@ -68,6 +79,7 @@ build () {
   clean
   check_esptool
   check_firmdir
+  check_version_from_pio
   cd $FIRMDIR
   check_binaries
 
@@ -80,15 +92,18 @@ build () {
     md5sum ../release/${OUTPUT}
   done
   cd ../release
-  zip ../../${NAME}_${FLAVOR}_v${VERSION}.zip *.bin
+  zip ../../${NAME}_v${VERSION}.zip *.bin
+  cd ../../
+  md5sum ${NAME}_v${VERSION}.zip
 }
 
 publish_release () {
+  check_version_from_pio
   echo "Publishing release: v${VERSION}" 
-  echo "uploading: ${NAME}_${TARGET}_rev${SRC_REV}_${DATE}.zip"
-  git tag -a "v${SRC_VER}" -m "release v${SRC_VER} rev${SRC_REV}"
-  git push origin "v${SRC_VER}"
-  git log -n 10 --pretty=format:"%h %s" | gh release create "v${SRC_VER}" -F - -t "v${SRC_VER} rev${SRC_REV}" -p ${NAME}_${TARGET}_rev${SRC_REV}_${DATE}.zip
+  echo "uploading: ${NAME}_v${VERSION}.zip"
+  git tag -a "${VERSION}" -m "release v${VERSION}"
+  git push origin "${VERSION}"
+  git log -n 10 --pretty=format:"%h %s" | gh release create "${VERSION}" -F - -t "v${VERSION}" -p ${NAME}_v${VERSION}.zip
 }
 
 if [ "$1" = "" ]; then
@@ -116,7 +131,7 @@ else
       ;;
 
     *)
-      pio run  
+      showHelp
       ;;
   esac
 fi
