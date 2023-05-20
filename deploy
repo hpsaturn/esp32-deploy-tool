@@ -12,12 +12,17 @@
 # here it is a general tool for any project.
 ################################################################
 
-NAME=`basename "$PWD"`
+DFLNAME=`basename "$PWD"`
 DATE=`date +%Y%m%d%H%M%S`
 FIRMDIR=.pio/build
 RELDIR="releases"
+
+# CONFIGURATION
 VERSION="${FIRMVER:-$DATE}"
-PIO_HOME=~/.platformio
+NAME="${FIRMNAME:-$DFLNAME}"
+PIO_HOME=~/.platformio/packages/framework-arduinoespressif32@3.20003.220626
+PIO_ESP32_BIN=$PIO_HOME/tools/sdk/esp32/bin
+PIO_PARTITIONS=$PIO_HOME/tools/partitions
 
 check_esptool () {
   esptool_path=`command -v esptool`
@@ -45,10 +50,13 @@ check_binaries () {
 
 showHelp () {
   echo ""
-  echo "************************************************"
-  echo "** Build release flavor or installer package **"
-  echo "************************************************"
+  echo "*******************************"
+  echo "** Build release tool        **"
+  echo "*******************************"
   echo ""
+  echo "usage:"
+  echo ""
+  echo "deploy [build|clean|publish|help"
   echo ""
 }
 
@@ -63,50 +71,20 @@ build () {
   cd $FIRMDIR
   check_binaries
 
-  echo ""
-  echo "***********************************************"
-  echo "** Building $1"
-  echo "***********************************************"
-  echo ""
-  
   mkdir -p ../release
   for dir in */ ; do
     FLAVOR=`basename $dir`
     OUTPUT="${NAME}_${FLAVOR}_v${VERSION}.bin"
-    echo $OUTPUT
-    esptool --chip esp32 merge_bin -o ../release/${OUTPUT}  --flash_mode dio --flash_freq 40m --flash_size 4MB 0x1000 ${PIO_HOME}/packages/framework-arduinoespressif32@3.20003.220626/tools/sdk/esp32/bin/bootloader_dio_40m.bin 0x8000 $FLAVOR/partitions.bin 0xe000 ${PIO_HOME}/packages/framework-arduinoespressif32@3.20003.220626/tools/partitions/boot_app0.bin 0x10000 $FLAVOR/firmware.bin
-
-    # esptool --chip esp32 merge_bin -o ../release/${OUTPUT} --flash_mode dio --flash_freq 40m --flash_size 4MB 0x1000 $PIO_HOME/packages/framework-arduinoespressif32@3.20003.220626/tools/sdk/esp32/bin/bootloader_dio_40m.bin 0x8000 esp32dev/partitions.bin 0xe000 ~/.platformio/packages/framework-arduinoespressif32@3.20003.220626/tools/partitions/boot_app0.bin 0x10000 esp32dev/firmware.bin
+    echo "Generating merge binary for $OUTPUT"
+    esptool --chip esp32 merge_bin -o ../release/${OUTPUT}  --flash_mode dio --flash_freq 40m --flash_size 4MB 0x1000 $PIO_ESP32_BIN/bootloader_dio_40m.bin 0x8000 $FLAVOR/partitions.bin 0xe000 $PIO_PARTITIONS/boot_app0.bin 0x10000 $FLAVOR/firmware.bin
     md5sum ../release/${OUTPUT}
-    # md5sum ../release/${NAME}_${FLAVOR}_v${VERSION}_merged.bin
   done
   cd ../release
   zip ../../${NAME}_${FLAVOR}_v${VERSION}.zip *.bin
 }
 
-buildInstaller () {
-  echo "***********************************************"
-  echo "** Building installer with target: $TARGET"
-  echo "***********************************************"
-  echo ""
-  echo "Update installer tool.."
-  cp $PIO_HOME/packages/tool-esptoolpy@1.30300.0/esptool.py $INSDIR/
-  echo "Update installer flavors.."
-  rm -f $INSDIR/*.bin
-  cp $RELDIR/$BINDIR/*/*${SRC_REV}_merged.bin $INSDIR/
-  cp ${PIO_HOME}/packages/tool-esptoolpy/esptool.py $INSDIR/
-  cd $INSDIR/..
-  rm -f ${NAME}_${TARGET}_rev${SRC_REV}_${DATE}.zip
-  zip -r ${NAME}_${TARGET}_rev${SRC_REV}_${DATE}.zip ${NAME}_installer
-  echo ""
-  du -hs ${NAME}_${TARGET}_rev${SRC_REV}_${DATE}.zip
-  echo ""
-}
-
 publish_release () {
-  cd $INSDIR/..
-  # github-release upload --owner ${OWNER} --repo ${REPO} --tag "rev${SRC_REV}" --release-name "rev${SRC_REV} v${SRC_VER}" --body "${COMMIT_LOG}" ${NAME}_${TARGET}_rev${SRC_REV}_${DATE}.zip
-  echo "Publishing release: v${SRC_VER} rev${SRC_REV}" 
+  echo "Publishing release: v${VERSION}" 
   echo "uploading: ${NAME}_${TARGET}_rev${SRC_REV}_${DATE}.zip"
   git tag -a "v${SRC_VER}" -m "release v${SRC_VER} rev${SRC_REV}"
   git push origin "v${SRC_VER}"
@@ -121,19 +99,11 @@ else
       clean
       ;;
 
-    installer)
-      buildInstaller
+    -help)
+      showHelp
       ;;
 
     help)
-      showHelp
-      ;;
-
-    --help)
-      showHelp
-      ;;
-
-    -help)
       showHelp
       ;;
 
@@ -141,22 +111,8 @@ else
       build
       ;;
 
-    github)
+    publish)
       publish_release
-      ;;
-
-    ota)
-      publish_release_ota
-      ;;
-
-    webi)
-      publish_release_webtools
-      ;;
-
-    list)
-      for flavor in $flavors; do
-          echo $flavor
-      done
       ;;
 
     *)
