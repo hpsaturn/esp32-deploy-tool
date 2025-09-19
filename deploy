@@ -18,9 +18,13 @@ FIRMDIR=.pio/build
 RELDIR="releases"
 
 # CONFIGURATION
-VERSION="${FIRMVER:-$DATE}"
+
+TARGET=`cat platformio.ini | grep 'target =' | awk '{print $3}'`
+PIO_INI_REV=`cat platformio.ini | grep 'revision =' | awk '{print $3}'`
+PIO_INI_VER=`cat platformio.ini | grep 'version =' | awk '{print $3}'`
+SRC_VER=${FIRMVER:-$PIO_INI_VER} SRC_VER=${SRC_VER:-$DATE}
+SRC_REV=${FIRMREV:-$PIO_INI_REV} SRC_REV=${SRC_REV:-$DATE}
 NAME="${FIRMNAME:-$DFLNAME}"
-PIO_HOME=~/.platformio/packages/framework-arduinoespressif32@3.20003.220626
 PIO_ESP32_BIN=$PIO_HOME/tools/sdk/esp32/bin
 PIO_PARTITIONS=$PIO_HOME/tools/partitions
 
@@ -48,6 +52,12 @@ check_binaries () {
   done
 }
 
+check_version () {
+  if [ "$1" != "" ]; then
+    VERSION="$1"
+  fi
+}
+
 showHelp () {
   echo ""
   echo "*******************************"
@@ -72,9 +82,7 @@ build () {
   clean
   check_esptool
   check_firmdir
-  if [ "$1" != "" ]; then
-    VERSION="$1"
-  fi
+  check_version "$1"
   echo "Version detected: $VERSION"
   cd $FIRMDIR
   check_binaries
@@ -93,7 +101,7 @@ build () {
 }
 
 publish_release () {
-  check_version_from_pio
+  check_version "$1"
   echo "Publishing release: v${VERSION}" 
   echo "uploading: ${NAME}_v${VERSION}.zip"
   git tag -a "${VERSION}" -m "release v${VERSION}"
@@ -102,6 +110,8 @@ publish_release () {
 }
 
 if [ "$1" = "" ]; then
+  echo "Deploy tool ($NAME $SRC_VER $SRC_REV)"
+  echo ""
   showHelp
 else
   case "$1" in
@@ -122,7 +132,7 @@ else
       ;;
 
     publish)
-      publish_release
+      publish_release "$2"
       ;;
 
     *)
