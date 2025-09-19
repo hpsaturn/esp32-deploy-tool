@@ -18,6 +18,20 @@ FIRMDIR=.pio/build
 RELDIR="releases"
 
 # CONFIGURATION
+# This tool admit the next environment variables for override defaults:
+#
+# FIRMVER (firmware version, i.e 0.2.0. Defautl from pio ini)
+# FIRMREV (firmware version, i.e 920. Defautl from pio ini)
+#
+# FIRNAME (firmare name, default basename directory)
+# FLAVORS (valid pio env values for building)
+#
+# Usage:
+# Only export this variables or execute this script like this examples:
+#
+# FIRMVER=0.3.2 FIRMREV=999 deploy build
+# FIRMVER=0.3.2 FIRMREV=999 FLAVORS="ICENAV_BOARD TDECK_ESP32S3" deploy all
+
 
 TARGET=`cat platformio.ini | grep 'target =' | awk '{print $3}'`
 PIO_INI_REV=`cat platformio.ini | grep 'revision =' | awk '{print $3}'`
@@ -26,7 +40,6 @@ SRC_VER=${FIRMVER:-$PIO_INI_VER} SRC_VER=${SRC_VER:-$DATE}
 SRC_REV=${FIRMREV:-$PIO_INI_REV} SRC_REV=${SRC_REV:-$DATE}
 NAME="${FIRMNAME:-$DFLNAME}"
 VERSION="v${SRC_VER}rev${SRC_REV}"
-dfl_envs="ICENAV_BOARD TDECK_ESP32S3"
 env_names=${FLAVORS:-$dfl_envs}
 
 check_esptool () {
@@ -105,8 +118,11 @@ showHelp () {
   echo "deploy [build|installer|clean|publish|help]"
   echo ""
   echo "examples:"
+  echo ""
   echo "deploy build"
   echo "deploy installer"
+  echo "FIRMVER=0.3.2 FIRMREV=999 deploy build"
+  echo "FIRMVER=0.3.2 FIRMREV=999 FLAVORS="ICENAV_BOARD TDECK_ESP32S3" deploy all"
   echo ""
 }
 
@@ -151,8 +167,6 @@ publish_release () {
 }
 
 if [ "$1" = "" ]; then
-  echo "Deploy tool (${NAME}_${VERSION})"
-  echo ""
   showHelp
 else
   case "$1" in
@@ -162,6 +176,7 @@ else
 
     all)
       build_all
+      installer
       ;;
 
     -help)
