@@ -25,11 +25,12 @@ PIO_INI_VER=`cat platformio.ini | grep 'version =' | awk '{print $3}'`
 SRC_VER=${FIRMVER:-$PIO_INI_VER} SRC_VER=${SRC_VER:-$DATE}
 SRC_REV=${FIRMREV:-$PIO_INI_REV} SRC_REV=${SRC_REV:-$DATE}
 NAME="${FIRMNAME:-$DFLNAME}"
-PIO_ESP32_BIN=$PIO_HOME/tools/sdk/esp32/bin
-PIO_PARTITIONS=$PIO_HOME/tools/partitions
+VERSION="v${SRC_VER}rev${SRC_REV}"
+dfl_envs="ICENAV_BOARD TDECK_ESP32S3"
+env_names=${FLAVORS:-$dfl_envs}
 
 check_esptool () {
-  esptool_path=`command -v esptool`
+  esptool_path=`${PIO_HOME}/packages/tool-esptoolpy/esptool.py`
   if [ "$esptool_path" = "" ]; then
 	  echo "Please install esptool first"
     exit 1
@@ -52,10 +53,45 @@ check_binaries () {
   done
 }
 
-check_version () {
-  if [ "$1" != "" ]; then
-    VERSION="$1"
+check_flavors () {
+  if [ "$env_names" = "" ]; then
+    env_output=`pio run -e invalid_env_name 2>&1`
+    # Extract environment names from error message using grep and sed
+    if echo "$env_output" | grep -q "Valid names are"; then
+        env_names=$(echo "$env_output" | grep -o "Valid names are '[^']*'" | sed "s/Valid names are '//; s/'//")
+        env_names=$(echo "$env_names" | tr ',' ' ')
+    else
+        echo "Error: Could not retrieve pio environment names"
+        echo "PlatformIO output: $env_output"
+        exit 1
+    fi
   fi
+}
+
+exit_on_error () {
+  echo ""
+  echo "***********************************************"
+  echo -e "\033[31m ** BUILD FAILED: $1 \033[0m"
+  echo "***********************************************"
+  echo ""
+  exit 1
+}
+
+build () {
+  echo "***********************************************"
+  echo "** Building $1"
+  echo "***********************************************"
+  echo ""
+  pio run -s -e $1 || exit_on_error $1
+  echo -e "\033[32m PASSED $1 !\033[0m"
+  echo ""
+}
+
+build_all () {
+  check_flavors
+  for env in $env_names; do
+    build $env    
+  done
 }
 
 showHelp () {
@@ -66,42 +102,47 @@ showHelp () {
   echo ""
   echo "usage:"
   echo ""
-  echo "deploy [build|clean|publish|help]"
+  echo "deploy [build|installer|clean|publish|help]"
   echo ""
   echo "examples:"
   echo "deploy build"
-  echo "deploy build 0.1.2"
+  echo "deploy installer"
+  echo ""
 }
 
 clean () {
-  rm -f ${NAME}_v${VERSION}.zip
-  rm -rf .pio/release
+  rm -f ${RELDIR}/${NAME}_${VERSION}.zip
 }
 
-build () {
+installer () {
   clean
   check_esptool
   check_firmdir
-  check_version "$1"
-  echo "Version detected: $VERSION"
   cd $FIRMDIR
   check_binaries
   mkdir -p ../release
   for dir in */ ; do
     FLAVOR=`basename $dir`
-    OUTPUT="${NAME}_${FLAVOR}_${VERSION}.bin"
+    OUTPUT="${FLAVOR}_${VERSION}_merged.bin"
+    echo ""
     echo "Generating merge binary for $OUTPUT"
-    esptool --chip esp32 merge_bin -o ../release/${OUTPUT}  --flash_mode dio --flash_freq 40m --flash_size 4MB 0x1000 $PIO_ESP32_BIN/bootloader_dio_40m.bin 0x8000 $FLAVOR/partitions.bin 0xe000 $PIO_PARTITIONS/boot_app0.bin 0x10000 $FLAVOR/firmware.bin
-    md5sum ../release/${OUTPUT}
+    find $PIO_HOME -wholename "*esp32/*bootloader_dio_40m.bin" -exec cp {} $dir/ ";"
+    find $PIO_HOME -wholename "*espressif32/*boot_app0.bin" -exec cp {} $dir/ ";"
+    /usr/bin/python3 ${PIO_HOME}/packages/tool-esptoolpy/esptool.py --chip esp32 merge_bin -o $FLAVOR/$OUTPUT --flash_mode dio --flash_freq 40m --flash_size 4MB 0x1000 $dir/bootloader_dio_40m.bin 0x8000 $dir/partitions.bin 0xe000 $dir/boot_app0.bin 0x10000 $dir/firmware.bin
+    md5sum $FLAVOR/${OUTPUT}
+    cp $FLAVOR/${OUTPUT} ../../${RELDIR}/
   done
-  cd ../release
-  zip ../../${NAME}_v${VERSION}.zip *.bin
-  cd ../../
-  md5sum ${NAME}_v${VERSION}.zip
+  cd ../../${RELDIR}
+  echo ""
+  echo "packing release:"
+  zip ${NAME}_${VERSION}.zip *.bin
+  rm *.bin
+  echo ""
+  du -hs ${NAME}_${VERSION}.zip
+  echo ""
 }
 
 publish_release () {
-  check_version "$1"
   echo "Publishing release: v${VERSION}" 
   echo "uploading: ${NAME}_v${VERSION}.zip"
   git tag -a "${VERSION}" -m "release v${VERSION}"
@@ -110,13 +151,17 @@ publish_release () {
 }
 
 if [ "$1" = "" ]; then
-  echo "Deploy tool ($NAME $SRC_VER $SRC_REV)"
+  echo "Deploy tool (${NAME}_${VERSION})"
   echo ""
   showHelp
 else
   case "$1" in
     clean)
       clean
+      ;;
+
+    all)
+      build_all
       ;;
 
     -help)
@@ -128,7 +173,15 @@ else
       ;;
 
     build)
-      build "$2"
+      if [ "$2" = "" ]; then
+        build_all
+      else
+        build "$2"
+      fi
+      ;;
+
+    installer)
+      installer
       ;;
 
     publish)
