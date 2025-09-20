@@ -25,6 +25,7 @@ RELDIR="releases"
 #
 # FIRNAME (firmare name, default basename directory)
 # FLAVORS (valid pio env values for building)
+# MCUTYPE (valid ESP32 mcu type: ESP32, ESP32C3, ESP32S2, ESP32S3)
 #
 # Usage:
 # Only export this variables or execute this script like this examples:
@@ -38,9 +39,13 @@ PIO_INI_REV=`cat platformio.ini | grep 'revision =' | awk '{print $3}'`
 PIO_INI_VER=`cat platformio.ini | grep 'version =' | awk '{print $3}'`
 SRC_VER=${FIRMVER:-$PIO_INI_VER} SRC_VER=${SRC_VER:-$DATE}
 SRC_REV=${FIRMREV:-$PIO_INI_REV} SRC_REV=${SRC_REV:-$DATE}
-NAME="${FIRMNAME:-$DFLNAME}"
 VERSION="v${SRC_VER}rev${SRC_REV}"
+
+NAME="${FIRMNAME:-$DFLNAME}"
 env_names=${FLAVORS:-$dfl_envs}
+
+dfl_mcu="ESP32S3"
+esp32mcu=${MCUTYPE:-$dfl_mcu}
 
 check_esptool () {
   esptool_path=`${PIO_HOME}/packages/tool-esptoolpy/esptool.py`
@@ -92,12 +97,11 @@ exit_on_error () {
 
 build () {
   echo "***********************************************"
-  echo "** Building $1"
+  echo "** Building $1 ($esp32mcu)"
   echo "***********************************************"
   echo ""
   pio run -s -e $1 || exit_on_error $1
   echo -e "\033[32m PASSED $1 !\033[0m"
-  # tag_core_arch $1
   echo ""
 }
 
@@ -106,27 +110,6 @@ build_all () {
   for env in $env_names; do
     build $env    
   done
-}
-
-tag_core_arch () {
-  # Get board name
-  board_config=$(pio project config | grep -A 10 "env:$1") 
-  board_name=$(echo "$board_config" | grep "board" | awk '{print $3}')
-  
-  # Check global and project-specific board JSON files
-  global_json_path="$HOME/.platformio/platforms/espressif32/boards/$board_name.json"
-  project_json_path="boards/$board_name.json"
-  
-  if [[ -f "$global_json_path" ]]; then
-      mcu_core=$(jq -r '.build.mcu' "$global_json_path")
-  elif [[ -f "$project_json_path" ]]; then
-      mcu_core=$(jq -r '.build.mcu' "$project_json_path")
-  else
-      mcu_core="unknown (board JSON not found)"
-  fi
-  
-  echo " - Board: $board_name"
-  echo " - MCU Core: $mcu_core"
 }
 
 showHelp () {
@@ -145,6 +128,7 @@ showHelp () {
   echo "deploy installer"
   echo "FIRMVER=0.3.2 FIRMREV=999 deploy build"
   echo "FIRMVER=0.3.2 FIRMREV=999 FLAVORS="ICENAV_BOARD TDECK_ESP32S3" deploy all"
+  echo "MCUTYPE=ESP32S2 build all"
   echo ""
 }
 
@@ -164,9 +148,17 @@ installer () {
     OUTPUT="${FLAVOR}_${VERSION}_merged.bin"
     echo ""
     echo "Generating merge binary for $OUTPUT"
-    find $PIO_HOME -wholename "*esp32/*bootloader_dio_40m.bin" -exec cp {} $dir/ ";"
-    find $PIO_HOME -wholename "*espressif32/*boot_app0.bin" -exec cp {} $dir/ ";"
-    /usr/bin/python3 ${PIO_HOME}/packages/tool-esptoolpy/esptool.py --chip esp32 merge_bin -o $FLAVOR/$OUTPUT --flash_mode dio --flash_freq 40m --flash_size 4MB 0x1000 $dir/bootloader_dio_40m.bin 0x8000 $dir/partitions.bin 0xe000 $dir/boot_app0.bin 0x10000 $dir/firmware.bin
+    if [ $esp32mcu == ESP32 ]; then
+      find $PIO_HOME -wholename "*esp32/*bootloader_dio_40m.bin" -exec cp {} $dir/ ";"
+      find $PIO_HOME -wholename "*espressif32/*boot_app0.bin" -exec cp {} $dir/ ";"
+      /usr/bin/python3 ${PIO_HOME}/packages/tool-esptoolpy/esptool.py --chip esp32 merge_bin -o $FLAVOR/$OUTPUT --flash_mode dio --flash_freq 40m --flash_size 4MB 0x1000 $dir/bootloader_dio_40m.bin 0x8000 $dir/partitions.bin 0xe000 $dir/boot_app0.bin 0x10000 $dir/firmware.bin
+    elif [ $esp32mcu == ESP32C3 ]; then
+      /usr/bin/python3 ${PIO_HOME}/packages/tool-esptoolpy/esptool.py --chip esp32c3 merge_bin -o  $FLAVOR/$OUTPUT --flash_mode dio --flash_freq 80m --flash_size=keep 0x0000 $dir/bootloader.bin 0x8000 $dir/partitions.bin 0xe000 ${PIO_HOME}/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin 0x10000 $dir/firmware.bin
+    elif [ $esp32mcu == ESP32S3 ]; then
+      /usr/bin/python3 ${PIO_HOME}/packages/tool-esptoolpy/esptool.py --chip esp32s3 merge_bin -o  $FLAVOR/$OUTPUT --flash_mode dio --flash_freq 80m --flash_size=keep 0x0000 $dir/bootloader.bin 0x8000 $dir/partitions.bin 0xe000 ${PIO_HOME}/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin 0x10000 $dir/firmware.bin
+    elif [ $esp32mcu == ESP32S2 ]; then
+      /usr/bin/python3 ${PIO_HOME}/packages/tool-esptoolpy/esptool.py --chip esp32s2 merge_bin -o  $FLAVOR/$OUTPUT --flash_mode dio --flash_freq 80m --flash_size=keep 0x0000 $dir/bootloader.bin 0x8000 $dir/partitions.bin 0xe000 ${PIO_HOME}/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin 0x10000 $dir/firmware.bin
+    fi
     md5sum $FLAVOR/${OUTPUT}
     cp $FLAVOR/${OUTPUT} ../../${RELDIR}/
   done
