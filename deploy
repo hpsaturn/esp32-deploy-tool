@@ -154,11 +154,11 @@ clean () {
 
 installer () {
   clean
+  mkdir -p ${RELDIR}
   check_esptool
   check_firmdir
   cd $FIRMDIR
   check_binaries
-  mkdir -p ../release
   for dir in */ ; do
     FLAVOR=`basename $dir`
     OUTPUT="${FLAVOR}_${VERSION}_merged.bin"

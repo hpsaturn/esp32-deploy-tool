@@ -12,7 +12,7 @@ This tool is for PlatformIO projects, and you need its PlatformIO core or CLI in
 - [x] Version and Revision definition via Pio ini or env variables
 - [x] Support list of flavors to build via env variable
 - [x] Binaries merged ouput only for ESP32 for now
-- [ ] Auto dectection of CORE type (ESP32/C3/S3/S2)
+- [ ] Auto dectection of CORE type (ESP32/C3/S3/S2). Issue #1
 
 ## Usage
 
