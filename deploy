@@ -97,7 +97,7 @@ build () {
   echo ""
   pio run -s -e $1 || exit_on_error $1
   echo -e "\033[32m PASSED $1 !\033[0m"
-  tag_core_arch $1
+  # tag_core_arch $1
   echo ""
 }
 
