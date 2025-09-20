@@ -177,7 +177,7 @@ publish_release () {
   echo "uploading: ${NAME}_v${VERSION}.zip"
   git tag -a "${VERSION}" -m "release v${VERSION}"
   git push origin "${VERSION}"
-  git log -n 10 --pretty=format:"%h %s" | gh release create "${VERSION}" -F - -t "v${VERSION}" -p ${NAME}_v${VERSION}.zip
+  git log -n 10 --pretty=format:"%h %s" | gh release create "${VERSION}" -F - -t "v${VERSION}" -p ${RELDIR}/${NAME}_v${VERSION}.zip
 }
 
 if [ "$1" = "" ]; then
