@@ -97,6 +97,7 @@ build () {
   echo ""
   pio run -s -e $1 || exit_on_error $1
   echo -e "\033[32m PASSED $1 !\033[0m"
+  tag_core_arch $1
   echo ""
 }
 
@@ -105,6 +106,27 @@ build_all () {
   for env in $env_names; do
     build $env    
   done
+}
+
+tag_core_arch () {
+  # Get board name
+  board_config=$(pio project config | grep -A 10 "env:$1") 
+  board_name=$(echo "$board_config" | grep "board" | awk '{print $3}')
+  
+  # Check global and project-specific board JSON files
+  global_json_path="$HOME/.platformio/platforms/espressif32/boards/$board_name.json"
+  project_json_path="boards/$board_name.json"
+  
+  if [[ -f "$global_json_path" ]]; then
+      mcu_core=$(jq -r '.build.mcu' "$global_json_path")
+  elif [[ -f "$project_json_path" ]]; then
+      mcu_core=$(jq -r '.build.mcu' "$project_json_path")
+  else
+      mcu_core="unknown (board JSON not found)"
+  fi
+  
+  echo " - Board: $board_name"
+  echo " - MCU Core: $mcu_core"
 }
 
 showHelp () {
