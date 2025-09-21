@@ -10,9 +10,11 @@ This tool is for PlatformIO projects, and you need its PlatformIO core or CLI in
 
 - [x] Auto detection of env for build
 - [x] Version and Revision definition via Pio ini or env variables
-- [x] Support list of flavors to build via env variable
+- [x] Support list of flavors to build via env variable: FLAVORS
 - [x] Binaries merged ouput only for ESP32 for now
-- [ ] Core auto dectection [issue](https://github.com/hpsaturn/esp32-deploy-tool/issues/1) (for ESP32/C3/S3/S2).
+- [x] Force MCU type via shell variable: MCUTYPE
+- [ ] MCU Core auto dectection [issue](https://github.com/hpsaturn/esp32-deploy-tool/issues/1) (for ESP32/C3/S3/S2).
+- [ ] Library projects support
 
 ## Usage
 
@@ -52,7 +54,7 @@ override settings examples:
 ```bash
 FIRMVER=0.3.2 FIRMREV=999 deploy build
 FIRMVER=0.3.2 FIRMREV=999 FLAVORS="ICENAV_BOARD TDECK_ESP32S3" deploy all
-MCUTYPE=ESP32S2 build all
+MCUTYPE=ESP32S2 deploy all
 ```
 
 ### Full Example

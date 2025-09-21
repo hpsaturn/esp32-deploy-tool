@@ -32,7 +32,7 @@ RELDIR="releases"
 #
 # FIRMVER=0.3.2 FIRMREV=999 deploy build
 # FIRMVER=0.3.2 FIRMREV=999 FLAVORS="ICENAV_BOARD TDECK_ESP32S3" deploy all
-
+# MCUTYPE=ESP32S2 build all
 
 TARGET=`cat platformio.ini | grep 'target =' | awk '{print $3}'`
 PIO_INI_REV=`cat platformio.ini | grep 'revision =' | awk '{print $3}'`
@@ -120,15 +120,16 @@ showHelp () {
   echo ""
   echo "usage:"
   echo ""
-  echo "deploy [build|installer|clean|publish|help]"
+  echo "deploy [all|build|installer|clean|publish|help]"
   echo ""
   echo "examples:"
   echo ""
+  echo "deploy all"
   echo "deploy build"
   echo "deploy installer"
   echo "FIRMVER=0.3.2 FIRMREV=999 deploy build"
   echo "FIRMVER=0.3.2 FIRMREV=999 FLAVORS="ICENAV_BOARD TDECK_ESP32S3" deploy all"
-  echo "MCUTYPE=ESP32S2 build all"
+  echo "MCUTYPE=ESP32S2 deploy all"
   echo ""
 }
 
@@ -137,7 +138,6 @@ clean () {
 }
 
 installer () {
-  clean
   mkdir -p ${RELDIR}
   check_esptool
   check_firmdir
@@ -165,8 +165,7 @@ installer () {
   cd ../../${RELDIR}
   echo ""
   echo "packing release:"
-  zip ${NAME}_${VERSION}.zip *.bin
-  rm *.bin
+  zip ${NAME}_${VERSION}.zip *${VERSION}_merged.bin
   echo ""
   du -hs ${NAME}_${VERSION}.zip
   echo ""
@@ -224,4 +223,3 @@ else
 fi
 
 exit 0
-
