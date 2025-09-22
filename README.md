@@ -18,7 +18,7 @@ This tool is for PlatformIO projects, and you need its PlatformIO core or CLI in
 
 ## Usage
 
-Fist install **deploy** command in your ~/bin directory, change it to executable, and run it like this possible examples:
+Fist install **deploy** command in your ~/bin directory, change it to executable, and run it like these possible options:
 
 Build all flavors and build installer:
 
@@ -45,6 +45,12 @@ deploy publish
 ```
 
 (you need [GitHub CLI](https://cli.github.com/) installed in your system)
+
+Full options help:
+
+```bash
+deploy help
+```
 
 ### Configuration
 
