@@ -85,7 +85,7 @@ FLAVORS="TDECK_ESP32S3 ICENAV_BOARD" deploy all
 
 (These flavors options are optional. If you don't specefic nothing, deploy could try to build all PlatformIO envs on the .ini file)
 
-**Output**:
+#### Output:
 
 ```bash
 ***********************************************
@@ -117,5 +117,12 @@ packing release:
 
 2.7M	icenav_v0.2.2rev86.zip
 
-
 ```
+
+#### Testing:
+
+You are able to test the merge binaries using esptool command or for instance [this tool](https://espressif.github.io/esp-launchpad/) from Espressif:
+
+![example icenav espressif firmware](images/icenav_espressif_install_00.jpg)
+![example icenav espressif upload](images/icenav_espressif_install_01.jpg)
+![example icenav espressif console](images/icenav_espressif_install_02.jpg)
