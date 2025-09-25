@@ -119,10 +119,30 @@ packing release:
 
 ```
 
+After that, the merged binaries and its zip package will be in the **releases**  directory.
+
+#### GitHub release
+
+This script also can able to publish these zip package to your GitHub release section of your proyect or repository. For that you need [GitHub CLI](https://cli.github.com/) configured in your system. Then run this command for publish a pre-release in GitHub:
+
+```bash
+deploy publish
+```
+
+This command could generate a tag and pre-release using the version and revision names detected in the PlatformIO ini file or when you passed it version names using the different overrides like FIRMVER bash variable in the inline shell like this:
+
+```bash
+FIRMVER=0.1.0 deploy publish
+```
+
 #### Testing:
 
-You are able to test the merge binaries using esptool command or for instance [this tool](https://espressif.github.io/esp-launchpad/) from Espressif:
+You are able to test the merge binaries using esptool command or for instance [this tool](https://espressif.github.io/esp-launchpad/) from Espressif, like this:
+
+<details><summary>Click to details</summary>
 
 ![example icenav espressif firmware](images/icenav_espressif_install_00.jpg)
 ![example icenav espressif upload](images/icenav_espressif_install_01.jpg)
 ![example icenav espressif console](images/icenav_espressif_install_02.jpg)
+
+</details>
