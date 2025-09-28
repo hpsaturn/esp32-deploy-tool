@@ -143,6 +143,11 @@ showHelp () {
 }
 
 clean () {
+  check_flavors
+  for env in $env_names ; do
+    rm -f "${RELDIR}/${env}_${VERSION}_merged.bin"
+    pio run -e $env --target clean
+  done
   rm -f ${RELDIR}/${NAME}_${VERSION}.zip
 }
 
@@ -152,7 +157,7 @@ installer () {
   check_firmdir
   cd $FIRMDIR
   check_binaries
-  for dir in */ ; do
+  for dir in $env_names ; do
     FLAVOR=`basename $dir`
     OUTPUT="${FLAVOR}_${VERSION}_merged.bin"
     echo ""
@@ -222,6 +227,7 @@ else
       ;;
 
     installer)
+      check_flavors
       installer
       ;;
 

@@ -13,6 +13,7 @@ This tool is for PlatformIO projects, and you need its PlatformIO core or CLI in
 - [x] Support list of flavors to build via env variable: FLAVORS
 - [x] Binaries merged ouput only for ESP32 for now
 - [x] Force MCU type via shell variable: MCUTYPE
+- [x] Added basic support for SPIFFS bin. [issue](https://github.com/hpsaturn/esp32-deploy-tool/issues/1)
 - [ ] MCU Core auto dectection [issue](https://github.com/hpsaturn/esp32-deploy-tool/issues/1) (for ESP32/C3/S3/S2).
 - [ ] Library projects support
 
