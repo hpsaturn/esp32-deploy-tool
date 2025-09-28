@@ -2,7 +2,7 @@
 ################################################################
 # ESP32 Release builder
 # ====================
-# (C) @hpsaturn 2022
+# (C) @hpsaturn 2022 - 2025
 # 
 # This tool needs a PlatformIO project builded. It will make an
 # installer of your current builds in the current directory.
@@ -46,6 +46,8 @@ env_names=${FLAVORS:-$dfl_envs}
 
 dfl_mcu="ESP32S3"
 esp32mcu=${MCUTYPE:-$dfl_mcu}
+
+spiffs_cmd=""
 
 check_esptool () {
   esptool_path=`${PIO_HOME}/packages/tool-esptoolpy/esptool.py`
@@ -95,12 +97,19 @@ exit_on_error () {
   exit 1
 }
 
+build_spiffs_bin () {
+  if [[ -e "data" ]]; then
+    pio run -s -e $1 -t buildfs || exit_on_error $1
+  fi
+}
+
 build () {
   echo "***********************************************"
   echo "** Building $1 ($esp32mcu)"
   echo "***********************************************"
   echo ""
   pio run -s -e $1 || exit_on_error $1
+  build_spiffs_bin $1
   echo -e "\033[32m PASSED $1 !\033[0m"
   echo ""
 }
@@ -108,7 +117,7 @@ build () {
 build_all () {
   check_flavors
   for env in $env_names; do
-    build $env    
+    build $env
   done
 }
 
@@ -148,16 +157,20 @@ installer () {
     OUTPUT="${FLAVOR}_${VERSION}_merged.bin"
     echo ""
     echo "Generating merge binary for $OUTPUT"
+    if [[ -f "$dir/spiffs.bin" ]]; then
+      spiffs_cmd="0xc90000 $dir/spiffs.bin"
+      echo "spiffs: $spiffs_cmd"
+    fi
     if [ $esp32mcu == ESP32 ]; then
       find $PIO_HOME -wholename "*esp32/*bootloader_dio_40m.bin" -exec cp {} $dir/ ";"
       find $PIO_HOME -wholename "*espressif32/*boot_app0.bin" -exec cp {} $dir/ ";"
-      /usr/bin/python3 ${PIO_HOME}/packages/tool-esptoolpy/esptool.py --chip esp32 merge_bin -o $FLAVOR/$OUTPUT --flash_mode dio --flash_freq 40m --flash_size 4MB 0x1000 $dir/bootloader_dio_40m.bin 0x8000 $dir/partitions.bin 0xe000 $dir/boot_app0.bin 0x10000 $dir/firmware.bin
+      /usr/bin/python3 ${PIO_HOME}/packages/tool-esptoolpy/esptool.py --chip esp32 merge_bin -o $FLAVOR/$OUTPUT --flash_mode dio --flash_freq 40m --flash_size 4MB 0x1000 $dir/bootloader_dio_40m.bin 0x8000 $dir/partitions.bin 0xe000 $dir/boot_app0.bin $spiffs_cmd 0x10000 $dir/firmware.bin
     elif [ $esp32mcu == ESP32C3 ]; then
-      /usr/bin/python3 ${PIO_HOME}/packages/tool-esptoolpy/esptool.py --chip esp32c3 merge_bin -o  $FLAVOR/$OUTPUT --flash_mode dio --flash_freq 80m --flash_size=keep 0x0000 $dir/bootloader.bin 0x8000 $dir/partitions.bin 0xe000 ${PIO_HOME}/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin 0x10000 $dir/firmware.bin
+      /usr/bin/python3 ${PIO_HOME}/packages/tool-esptoolpy/esptool.py --chip esp32c3 merge_bin -o  $FLAVOR/$OUTPUT --flash_mode dio --flash_freq 80m --flash_size=keep 0x0000 $dir/bootloader.bin 0x8000 $dir/partitions.bin 0xe000 ${PIO_HOME}/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin $spiffs_cmd 0x10000 $dir/firmware.bin
     elif [ $esp32mcu == ESP32S3 ]; then
-      /usr/bin/python3 ${PIO_HOME}/packages/tool-esptoolpy/esptool.py --chip esp32s3 merge_bin -o  $FLAVOR/$OUTPUT --flash_mode dio --flash_freq 80m --flash_size=keep 0x0000 $dir/bootloader.bin 0x8000 $dir/partitions.bin 0xe000 ${PIO_HOME}/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin 0x10000 $dir/firmware.bin
+      /usr/bin/python3 ${PIO_HOME}/packages/tool-esptoolpy/esptool.py --chip esp32s3 merge_bin -o  $FLAVOR/$OUTPUT --flash_mode dio --flash_freq 80m --flash_size=keep 0x0000 $dir/bootloader.bin 0x8000 $dir/partitions.bin 0xe000 ${PIO_HOME}/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin $spiffs_cmd 0x10000 $dir/firmware.bin
     elif [ $esp32mcu == ESP32S2 ]; then
-      /usr/bin/python3 ${PIO_HOME}/packages/tool-esptoolpy/esptool.py --chip esp32s2 merge_bin -o  $FLAVOR/$OUTPUT --flash_mode dio --flash_freq 80m --flash_size=keep 0x0000 $dir/bootloader.bin 0x8000 $dir/partitions.bin 0xe000 ${PIO_HOME}/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin 0x10000 $dir/firmware.bin
+      /usr/bin/python3 ${PIO_HOME}/packages/tool-esptoolpy/esptool.py --chip esp32s2 merge_bin -o  $FLAVOR/$OUTPUT --flash_mode dio --flash_freq 80m --flash_size=keep 0x0000 $dir/bootloader.bin 0x8000 $dir/partitions.bin 0xe000 ${PIO_HOME}/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin $spiffs_cmd 0x10000 $dir/firmware.bin
     fi
     md5sum $FLAVOR/${OUTPUT}
     cp $FLAVOR/${OUTPUT} ../../${RELDIR}/
