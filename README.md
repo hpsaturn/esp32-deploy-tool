@@ -1,6 +1,7 @@
 # ESP32 Deploy Tool
 
-**!! W A R N N I N G !! In DEVELOPMENT**
+**!! W A R N N I N G !!**
+(In DEVELOPMENT)
 
 ESP32 merged binaries generator for publication or continuos integration. This code is based of [CanAirIO deploy tool](https://github.com/kike-canaries/canairio_firmware/blob/master/build) but it is for general purpose.
 
@@ -15,7 +16,7 @@ This tool is for PlatformIO projects, and you need its PlatformIO core or CLI in
 - [x] Force MCU type via shell variable: MCUTYPE
 - [x] Added basic support for SPIFFS bin. [issue](https://github.com/hpsaturn/esp32-deploy-tool/issues/1)
 - [ ] MCU Core auto dectection [issue](https://github.com/hpsaturn/esp32-deploy-tool/issues/1) (for ESP32/C3/S3/S2).
-- [ ] Library projects support
+- [x] Library projects support
 
 ## Usage
 
@@ -37,6 +38,12 @@ Build installer package:
 
 ```bash
 deploy installer
+```
+
+Build library package:
+
+```bash
+deploy lib
 ```
 
 GitHub release publication:

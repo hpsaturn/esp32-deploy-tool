@@ -26,6 +26,7 @@ RELDIR="releases"
 # FIRNAME (firmare name, default basename directory)
 # FLAVORS (valid pio env values for building)
 # MCUTYPE (valid ESP32 mcu type: ESP32, ESP32C3, ESP32S2, ESP32S3)
+# SPIFADR (spiffs partition address. Default 0xc90000)
 #
 # Usage:
 # Only export this variables or execute this script like this examples:
@@ -37,15 +38,20 @@ RELDIR="releases"
 TARGET=`cat platformio.ini | grep 'target =' | awk '{print $3}'`
 PIO_INI_REV=`cat platformio.ini | grep 'revision =' | awk '{print $3}'`
 PIO_INI_VER=`cat platformio.ini | grep 'version =' | awk '{print $3}'`
-SRC_VER=${FIRMVER:-$PIO_INI_VER} SRC_VER=${SRC_VER:-$DATE}
+LIB_NAME=`cat library.properties | grep name | sed -n -e 's/^.*name=//p'`
+LIB_VER=`cat library.properties | grep version | sed -n -e 's/^.*version=//p'`
+
+SRC_VER=${FIRMVER:-$PIO_INI_VER} SRC_VER=${SRC_VER:-$LIB_VER} SRC_VER=${SRC_VER:-$DATE}
 SRC_REV=${FIRMREV:-$PIO_INI_REV} SRC_REV=${SRC_REV:-$DATE}
 VERSION="v${SRC_VER}rev${SRC_REV}"
 
-NAME="${FIRMNAME:-$DFLNAME}"
+NAME="${FIRMNAME:-$LIB_NAME}" NAME=${NAME:-$DFLNAME}
 env_names=${FLAVORS:-$dfl_envs}
 
 dfl_mcu="ESP32S3"
 esp32mcu=${MCUTYPE:-$dfl_mcu}
+spiffs_addr="0xc90000"
+spiffs_addr=${SPIFADR:-$spiffs_addr}
 
 spiffs_cmd=""
 
@@ -129,7 +135,7 @@ showHelp () {
   echo ""
   echo "usage:"
   echo ""
-  echo "deploy [all|build|installer|clean|publish|help]"
+  echo "deploy [all|build|installer|lib|clean|publish|help]"
   echo ""
   echo "examples:"
   echo ""
@@ -163,7 +169,7 @@ installer () {
     echo ""
     echo "Generating merge binary for $OUTPUT"
     if [[ -f "$dir/spiffs.bin" ]]; then
-      spiffs_cmd="0xc90000 $dir/spiffs.bin"
+      spiffs_cmd="$spiffs_addr $dir/spiffs.bin"
       echo "spiffs: $spiffs_cmd"
     fi
     if [ $esp32mcu == ESP32 ]; then
@@ -189,12 +195,42 @@ installer () {
   echo ""
 }
 
+build_lib () { 
+  echo ""
+  echo "***********************************************"
+  echo "** Building Library Package ${NAME}_${SRC_VER}"
+  echo "***********************************************"
+  echo ""
+  pio package pack -o $RELDIR/
+  echo ""
+  OUTPUT="${RELDIR}/${NAME}-${SRC_VER}.tar.gz"
+  tar ztf $OUTPUT
+  echo ""
+  echo "***********************************************"
+  echo "************** Build done *********************" 
+  echo "***********************************************"
+  echo ""
+  md5sum $OUTPUT
+  du -hs $OUTPUT
+  echo ""
+}
+
 publish_release () {
-  echo "Publishing release: v${FIRMVER}" 
-  echo "uploading: ${NAME}_${VERSION}.zip"
-  git tag -a "v${FIRMVER}" -m "release v${FIRMVER} rev${FIRMREV}"
-  git push origin "v${FIRMVER}"
-  git log -n 15 --pretty=format:"%h %s" | gh release create "v${FIRMVER}" -F - -t "v${FIRMVER}" -p ${RELDIR}/${NAME}_${VERSION}.zip
+  if [[ -f "${RELDIR}/${NAME}_${VERSION}.zip" ]]; then
+    OUTPUT=${NAME}_${VERSION}.zip
+  elif [[ -f "${RELDIR}/${NAME}-${SRC_VER}.tar.gz" ]]; then
+    OUTPUT=${NAME}-${SRC_VER}.tar.gz
+  else
+    echo ""
+    echo "Package not found! Please build it first (deploy build or deploy lib)"
+    echo ""
+    exit 1
+  fi
+  echo "Publishing release: v${SRC_VER}" 
+  echo "uploading: ${OUTPUT}"
+  git tag -a "v${SRC_VER}" -m "release v${SRC_VER} rev${SRC_REV}"
+  git push origin "v${SRC_VER}"
+  git log -n 15 --pretty=format:"%h %s" | gh release create "v${SRC_VER}" -F - -t "v${SRC_VER}" -p ${RELDIR}/${OUTPUT}
 }
 
 if [ "$1" = "" ]; then
@@ -224,6 +260,10 @@ else
       else
         build "$2"
       fi
+      ;;
+    
+    lib)
+      build_lib
       ;;
 
     installer)
