@@ -38,11 +38,14 @@ RELDIR="releases"
 TARGET=`cat platformio.ini | grep 'target =' | awk '{print $3}'`
 PIO_INI_REV=`cat platformio.ini | grep 'revision =' | awk '{print $3}'`
 PIO_INI_VER=`cat platformio.ini | grep 'version =' | awk '{print $3}'`
-SRC_VER=${FIRMVER:-$PIO_INI_VER} SRC_VER=${SRC_VER:-$DATE}
+LIB_NAME=`cat library.properties | grep name | sed -n -e 's/^.*name=//p'`
+LIB_VER=`cat library.properties | grep version | sed -n -e 's/^.*version=//p'`
+
+SRC_VER=${FIRMVER:-$PIO_INI_VER} SRC_VER=${SRC_VER:-$LIB_VER} SRC_VER=${SRC_VER:-$DATE}
 SRC_REV=${FIRMREV:-$PIO_INI_REV} SRC_REV=${SRC_REV:-$DATE}
 VERSION="v${SRC_VER}rev${SRC_REV}"
 
-NAME="${FIRMNAME:-$DFLNAME}"
+NAME="${FIRMNAME:-$LIB_NAME}" NAME=${NAME:-$DFLNAME}
 env_names=${FLAVORS:-$dfl_envs}
 
 dfl_mcu="ESP32S3"
@@ -192,10 +195,10 @@ installer () {
   echo ""
 }
 
-build_lib () {
+build_lib () { 
   echo ""
   echo "***********************************************"
-  echo "** Building Library Package ${NAME}_${VERSION}"
+  echo "** Building Library Package ${NAME}_${SRC_VER}"
   echo "***********************************************"
   echo ""
   pio package pack -o $RELDIR/
@@ -213,9 +216,9 @@ build_lib () {
 }
 
 publish_release () {
-  if [[ -f ${RELDIR}/${NAME}_${VERSION}.zip ]]; then
+  if [[ -f "${RELDIR}/${NAME}_${VERSION}.zip" ]]; then
     OUTPUT=${NAME}_${VERSION}.zip
-  else if [[ -f ${RELDIR}/${NAME}-${SRC_VER}.tar.gz ]]; then
+  elif [[ -f "${RELDIR}/${NAME}-${SRC_VER}.tar.gz" ]]; then
     OUTPUT=${NAME}-${SRC_VER}.tar.gz
   else
     echo ""
