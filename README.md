@@ -1,6 +1,7 @@
 # ESP32 Deploy Tool
 
-**!! W A R N N I N G !! In DEVELOPMENT**
+**!! W A R N N I N G !!**
+(In DEVELOPMENT)
 
 ESP32 merged binaries generator for publication or continuos integration. This code is based of [CanAirIO deploy tool](https://github.com/kike-canaries/canairio_firmware/blob/master/build) but it is for general purpose.
 

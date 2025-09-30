@@ -26,6 +26,7 @@ RELDIR="releases"
 # FIRNAME (firmare name, default basename directory)
 # FLAVORS (valid pio env values for building)
 # MCUTYPE (valid ESP32 mcu type: ESP32, ESP32C3, ESP32S2, ESP32S3)
+# SPIFADR (spiffs partition address. Default 0xc90000)
 #
 # Usage:
 # Only export this variables or execute this script like this examples:
@@ -46,6 +47,8 @@ env_names=${FLAVORS:-$dfl_envs}
 
 dfl_mcu="ESP32S3"
 esp32mcu=${MCUTYPE:-$dfl_mcu}
+spiffs_addr="0xc90000"
+spiffs_addr=${SPIFADR:-$spiffs_addr}
 
 spiffs_cmd=""
 
@@ -163,7 +166,7 @@ installer () {
     echo ""
     echo "Generating merge binary for $OUTPUT"
     if [[ -f "$dir/spiffs.bin" ]]; then
-      spiffs_cmd="0xc90000 $dir/spiffs.bin"
+      spiffs_cmd="$spiffs_addr $dir/spiffs.bin"
       echo "spiffs: $spiffs_cmd"
     fi
     if [ $esp32mcu == ESP32 ]; then
