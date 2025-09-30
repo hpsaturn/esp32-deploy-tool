@@ -132,7 +132,7 @@ showHelp () {
   echo ""
   echo "usage:"
   echo ""
-  echo "deploy [all|build|installer|clean|publish|help]"
+  echo "deploy [all|build|installer|lib|clean|publish|help]"
   echo ""
   echo "examples:"
   echo ""
@@ -192,12 +192,42 @@ installer () {
   echo ""
 }
 
+build_lib () {
+  echo ""
+  echo "***********************************************"
+  echo "** Building Library Package ${NAME}_${VERSION}"
+  echo "***********************************************"
+  echo ""
+  pio package pack -o $RELDIR/
+  echo ""
+  OUTPUT="${RELDIR}/${NAME}-${SRC_VER}.tar.gz"
+  tar ztf $OUTPUT
+  echo ""
+  echo "***********************************************"
+  echo "************** Build done *********************" 
+  echo "***********************************************"
+  echo ""
+  md5sum $OUTPUT
+  du -hs $OUTPUT
+  echo ""
+}
+
 publish_release () {
+  if [[ -f ${RELDIR}/${NAME}_${VERSION}.zip ]]; then
+    OUTPUT=${NAME}_${VERSION}.zip
+  else if [[ -f ${RELDIR}/${NAME}-${SRC_VER}.tar.gz ]]; then
+    OUTPUT=${NAME}-${SRC_VER}.tar.gz
+  else
+    echo ""
+    echo "Package not found! Please build it first (deploy build or deploy lib)"
+    echo ""
+    exit 1
+  fi
   echo "Publishing release: v${FIRMVER}" 
-  echo "uploading: ${NAME}_${VERSION}.zip"
+  echo "uploading: ${OUTPUT}"
   git tag -a "v${FIRMVER}" -m "release v${FIRMVER} rev${FIRMREV}"
   git push origin "v${FIRMVER}"
-  git log -n 15 --pretty=format:"%h %s" | gh release create "v${FIRMVER}" -F - -t "v${FIRMVER}" -p ${RELDIR}/${NAME}_${VERSION}.zip
+  git log -n 15 --pretty=format:"%h %s" | gh release create "v${FIRMVER}" -F - -t "v${FIRMVER}" -p ${RELDIR}/${OUTPUT}
 }
 
 if [ "$1" = "" ]; then
@@ -227,6 +257,10 @@ else
       else
         build "$2"
       fi
+      ;;
+    
+    lib)
+      build_lib
       ;;
 
     installer)
