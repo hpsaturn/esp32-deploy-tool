@@ -226,11 +226,11 @@ publish_release () {
     echo ""
     exit 1
   fi
-  echo "Publishing release: v${FIRMVER}" 
+  echo "Publishing release: v${SRC_VER}" 
   echo "uploading: ${OUTPUT}"
-  git tag -a "v${FIRMVER}" -m "release v${FIRMVER} rev${FIRMREV}"
-  git push origin "v${FIRMVER}"
-  git log -n 15 --pretty=format:"%h %s" | gh release create "v${FIRMVER}" -F - -t "v${FIRMVER}" -p ${RELDIR}/${OUTPUT}
+  git tag -a "v${SRC_VER}" -m "release v${SRC_VER} rev${SRC_REV}"
+  git push origin "v${SRC_VER}"
+  git log -n 15 --pretty=format:"%h %s" | gh release create "v${SRC_VER}" -F - -t "v${SRC_VER}" -p ${RELDIR}/${OUTPUT}
 }
 
 if [ "$1" = "" ]; then
